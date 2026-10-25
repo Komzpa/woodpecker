@@ -32,6 +32,12 @@ func (e *local) execPlugin(ctx context.Context, step *types.Step, state *workflo
 	cmd := newCmd(ctx, binary)
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
+	if e.sandbox {
+		cmd, err = sandboxCommand(ctx, cmd, state)
+		if err != nil {
+			return err
+		}
+	}
 
 	reader, err := cmd.StdoutPipe()
 	if err != nil {
