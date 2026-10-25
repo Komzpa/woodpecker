@@ -38,7 +38,7 @@ func sandboxProfile(state *workflowState) (string, error) {
 	p.WriteString(`(version 1)
 (deny default)
 (allow file-read*)
-(allow process* signal sysctl-read mach-lookup ipc-posix-shm* network*)
+(allow process* signal sysctl-read mach-lookup ipc* network*)
 (allow file-read* file-write* file-ioctl (literal "/dev/null") (literal "/dev/zero") (literal "/dev/random") (literal "/dev/urandom"))
 `)
 	// xcrun resolves this account-specific cache path without consulting TMPDIR.
@@ -57,6 +57,13 @@ func sandboxProfile(state *workflowState) (string, error) {
 	}
 	for _, allowed := range []string{state.baseDir, state.workspaceDir, state.homeDir} {
 		fmt.Fprintf(&p, "(allow file-read* (subpath %s))\n(allow file* (subpath %s))\n", sandboxPath(allowed), sandboxPath(allowed))
+	}
+	// mkdir -p and toolchain path discovery stat ancestors of an allowed tree.
+	// Permit metadata only; this does not expose sibling directory contents.
+	for _, allowed := range []string{state.baseDir, state.workspaceDir, state.homeDir, filepath.Dir(binary)} {
+		for parent := filepath.Dir(allowed); parent != "/" && parent != "."; parent = filepath.Dir(parent) {
+			fmt.Fprintf(&p, "(allow file-read-metadata (literal %s))\n", sandboxPath(parent))
+		}
 	}
 	return p.String(), nil
 }
