@@ -48,6 +48,12 @@ func (e *local) execCommands(ctx context.Context, step *types.Step, state *workf
 	cmd := newCmd(ctx, step.Image, args...)
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
+	if e.sandbox {
+		cmd, err = sandboxCommand(ctx, cmd, state)
+		if err != nil {
+			return err
+		}
+	}
 
 	reader, err := cmd.StdoutPipe()
 	if err != nil {

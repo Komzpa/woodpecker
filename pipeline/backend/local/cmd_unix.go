@@ -29,6 +29,9 @@ func newCmd(ctx context.Context, binary string, args ...string) *exec.Cmd {
 	// ... create new process group for the command.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Cancel = func() error {
+		if cmd.Process == nil {
+			return nil
+		}
 		// ... send kill to whole process group.
 		return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 	}

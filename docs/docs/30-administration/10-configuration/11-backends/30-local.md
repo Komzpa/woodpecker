@@ -62,3 +62,21 @@ In the context of the local backend, plugins are simply executable binaries, whi
 - Default: default temp directory
 
 Directory to create folders for workflows.
+
+## macOS workflow filesystem sandbox
+
+Set `WOODPECKER_BACKEND_LOCAL_SANDBOX=true` to require `/usr/bin/sandbox-exec`
+for commands, native plugins and the clone step. The agent fails to load if the
+sandbox is unavailable. It forces an isolated HOME and per-workflow TMPDIR,
+removes inherited agent configuration from the child environment and denies
+access to sibling workflow directories and host user homes. The installed
+toolchain remains readable; installations must use the workflow directory.
+
+`WOODPECKER_MAX_WORKFLOWS` remains the normal configurable concurrency limit.
+The sandbox does not impose a two-workflow limit. It shares the host kernel,
+network and user identity and is not a VM security boundary for hostile code.
+Apple toolchain account temporary caches remain shared for xcrun compatibility.
+
+Validate on a Mac with `go test ./pipeline/backend/local -run TestSandbox`.
+The native tests run four workflows, compile and execute C, reject cross-workflow
+file access and verify cancellation leaves another workflow running.

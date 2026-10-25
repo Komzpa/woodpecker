@@ -21,6 +21,7 @@ import (
 )
 
 var Flags = []cli.Flag{
+	&cli.BoolFlag{Name: "backend-local-sandbox", Sources: cli.EnvVars("WOODPECKER_BACKEND_LOCAL_SANDBOX"), Usage: "require macOS sandbox-exec for every workflow process"},
 	&cli.StringFlag{
 		Name:        "backend-local-temp-dir",
 		Sources:     cli.EnvVars("WOODPECKER_BACKEND_LOCAL_TEMP_DIR"),

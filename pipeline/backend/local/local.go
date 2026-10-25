@@ -48,6 +48,7 @@ type stepState struct {
 type local struct {
 	tempDir         string
 	isolatedHome    bool
+	sandbox         bool
 	workflows       sync.Map
 	pluginGitBinary string
 	os, arch        string
@@ -86,8 +87,15 @@ func (e *local) Load(ctx context.Context) (*types.BackendInfo, error) {
 	if ok {
 		e.tempDir = c.String("backend-local-temp-dir")
 		e.isolatedHome = c.Bool("backend-local-isolated-home")
+		e.sandbox = c.Bool("backend-local-sandbox")
 	}
 
+	if e.sandbox {
+		if err := checkSandbox(); err != nil {
+			return nil, err
+		}
+		e.isolatedHome = true
+	}
 	e.loadClone()
 
 	return &types.BackendInfo{
@@ -149,6 +157,9 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 
 	// Get environment variables
 	env := os.Environ()
+	if e.sandbox {
+		env = sandboxEnviron()
+	}
 	for a, b := range step.Environment {
 		// append allowed env vars to command env
 		if !slices.Contains(notAllowedEnvVarOverwrites, a) {
@@ -161,6 +172,13 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 		env = append(env, "USERPROFILE="+state.homeDir)
 	}
 
+	if e.sandbox {
+		tmp := filepath.Join(state.baseDir, "tmp")
+		if err := os.MkdirAll(tmp, 0o700); err != nil {
+			return err
+		}
+		env = append(env, "TMPDIR="+tmp, "TMP="+tmp, "TEMP="+tmp)
+	}
 	env = append(env, "CI_WORKSPACE="+state.workspaceDir)
 
 	switch step.Type {
