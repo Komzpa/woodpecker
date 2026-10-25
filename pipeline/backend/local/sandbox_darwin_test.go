@@ -39,6 +39,7 @@ func TestSandboxConcurrentWorkflows(t *testing.T) {
 test -z "${WOODPECKER_AGENT_SECRET+x}"
 if cat %q >/dev/null 2>&1; then exit 41; fi
 if echo corrupt >%q 2>/dev/null; then exit 42; fi
+mkdir -p "$TMPDIR/nested/build" "$HOME/nested/cache"
 printf 'int main(void){return 0;}\n' > native.c
 /usr/bin/clang native.c -o native
 ./native
